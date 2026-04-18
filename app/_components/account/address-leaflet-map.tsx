@@ -1,8 +1,9 @@
 "use client";
 
+import "leaflet/dist/leaflet.css";
 import { useEffect } from "react";
 import { divIcon } from "leaflet";
-import { MapContainer, Marker, TileLayer, useMapEvents } from "react-leaflet";
+import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
 
 type AddressLeafletMapProps = {
   className?: string;
@@ -14,7 +15,7 @@ type AddressLeafletMapProps = {
   onPickLocation: (latitude: number, longitude: number) => void;
 };
 
-const DEFAULT_CENTER: [number, number] = [14.8139, 121.0453];
+const DEFAULT_CENTER: [number, number] = [13.033387, 121.492192];
 const locationPinIcon = divIcon({
   className: "rice-location-pin",
   html: `
@@ -27,12 +28,20 @@ const locationPinIcon = divIcon({
   popupAnchor: [0, -28],
 });
 
+function MapUpdater({ center, zoom }: { center: [number, number]; zoom: number }) {
+  const map = useMap();
+  useEffect(() => {
+    (map as any).setView(center, zoom);
+  }, [center, zoom, map]);
+  return null;
+}
+
 function MapReadySync() {
   const map = useMapEvents({});
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
-      map.invalidateSize();
+      (map as any).invalidateSize();
     }, 0);
 
     return () => {
@@ -70,10 +79,8 @@ export default function AddressLeafletMap({
     latitude !== null && longitude !== null
       ? [latitude, longitude]
       : DEFAULT_CENTER;
-  const mapKey =
-    latitude !== null && longitude !== null
-      ? `${latitude}-${longitude}-${geofenceRadiusMeters}`
-      : "address-map-default";
+  
+  const zoom = latitude !== null && longitude !== null ? 16 : 12;
 
   const tileLayer =
     mapTheme === "satellite"
@@ -91,20 +98,19 @@ export default function AddressLeafletMap({
   return (
     <div className="overflow-hidden rounded-[1.5rem] border border-[#d8d4be]">
       <MapContainer
-        key={mapKey}
         center={center}
-        zoom={latitude !== null && longitude !== null ? 16 : 12}
+        zoom={zoom}
         scrollWheelZoom={isInteractive}
         className={`${className} w-full`}
       >
         <MapReadySync />
+        <MapUpdater center={center} zoom={zoom} />
         <TileLayer attribution={tileLayer.attribution} url={tileLayer.url} />
         {isInteractive ? (
           <LocationPicker onPickLocation={onPickLocation} />
         ) : null}
         {latitude !== null && longitude !== null ? (
           <Marker
-            key={`${latitude}-${longitude}-${geofenceRadiusMeters}`}
             position={[latitude, longitude]}
             icon={locationPinIcon}
           />

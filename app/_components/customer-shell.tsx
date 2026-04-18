@@ -95,6 +95,7 @@ export default function CustomerShell({
               width={190}
               height={46}
               className="h-10 w-auto"
+              style={{ width: "auto" }}
               priority
             />
           </div>
@@ -158,6 +159,7 @@ export default function CustomerShell({
                 width={132}
                 height={32}
                 className="h-8 w-auto"
+                style={{ width: "auto" }}
                 priority
               />
             </div>

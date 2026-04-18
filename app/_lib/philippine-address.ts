@@ -39,7 +39,19 @@ export function getProvinceOptions(regionCode: string) {
     return [] as PhilippineProvince[];
   }
 
-  return addressLibrary.sort(addressLibrary.getProvincesByRegion(regionCode));
+  const provinces = addressLibrary.getProvincesByRegion(regionCode);
+  
+  // Deduplicate by prov_code
+  const seen = new Set();
+  const uniqueProvinces = provinces.filter((province) => {
+    if (seen.has(province.prov_code)) {
+      return false;
+    }
+    seen.add(province.prov_code);
+    return true;
+  });
+
+  return addressLibrary.sort(uniqueProvinces);
 }
 
 export function getMunicipalityOptions(provinceCode: string) {

@@ -1,45 +1,36 @@
-import type { Metadata, Viewport } from "next";
+import type { Metadata } from "next";
 import { Geist_Mono, Lexend, Poppins } from "next/font/google";
 
 import AuthBootstrap from "@/app/_components/auth-bootstrap";
-import PwaRegister from "@/app/_components/pwa-register";
 
 import "./globals.css";
 
 const poppins = Poppins({
   variable: "--font-poppins",
-  subsets: ["latin"],
   weight: ["400", "500", "600", "700", "800"],
+  subsets: ["latin"],
+  display: "swap",
 });
 
 const lexend = Lexend({
   variable: "--font-lexend",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
+  display: "swap",
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
   title: "Sarcia Rice Co.",
   description:
     "Order fresh rice online, manage deliveries, and keep household staples on schedule.",
-  applicationName: "Sarcia Rice Co.",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-    title: "Sarcia Rice Co.",
-  },
   formatDetection: {
     telephone: false,
   },
-};
-
-export const viewport: Viewport = {
-  themeColor: "#4d6b35",
 };
 
 export default function RootLayout({
@@ -54,7 +45,6 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <AuthBootstrap />
-        <PwaRegister />
         {children}
       </body>
     </html>

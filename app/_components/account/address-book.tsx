@@ -1,8 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { PencilLine, Plus, Save, Star, Trash2, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { CheckCircle2, PencilLine, Plus, Save, Trash2, X } from "lucide-react";
+import { useMemo, useState, useEffect } from "react";
 
 import {
   getBarangayOptions,
@@ -121,7 +121,7 @@ function formatAddress(address: AddressDraft) {
     address.province,
     address.postal_code,
   ]
-    .map((value) => value.trim())
+    .map((value) => (value || "").trim())
     .filter(Boolean)
     .join(", ");
 }
@@ -156,93 +156,63 @@ function normalizeDefault(addresses: AddressDraft[]) {
 type AccountAddressBookProps = {
   userMobile: string;
   userName: string;
+  onAddressChange?: () => void;
 };
 
 export default function AccountAddressBook({
   userMobile,
   userName,
+  onAddressChange,
 }: AccountAddressBookProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const [error, setError] = useState("");
+  
   const [mapTheme, setMapTheme] = useState<"street" | "satellite">("satellite");
-  const [addresses, setAddresses] = useState<AddressDraft[]>(() => {
-    if (typeof window === "undefined") {
-      return [
-        {
-          ...createEmptyAddressDraft(userName, userMobile),
-          is_default: true,
-        },
-      ];
-    }
+  const [addresses, setAddresses] = useState<AddressDraft[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState("");
 
-    const stored = window.localStorage.getItem(PROFILE_ADDRESSES_STORAGE_KEY);
+  const [draftAddress, setDraftAddress] = useState<AddressDraft | null>(null);
 
-    if (!stored) {
-      return [
-        {
-          ...createEmptyAddressDraft(userName, userMobile),
-          is_default: true,
-        },
-      ];
-    }
+  // Fetch addresses on mount
+  useEffect(() => {
+    const fetchAddresses = async () => {
+      try {
+        const response = await fetch("/api/auth/addresses");
+        if (!response.ok) throw new Error("Failed to fetch addresses");
+        const data = await response.json();
+        
+        const normalized = data.map((addr: any) => ({
+          ...addr,
+          id: addr.id.toString(),
+          geofence_radius_meters: addr.geofence_radius_meters.toString(),
+        }));
+        
+        setAddresses(normalized);
+        const defaultAddr = normalized.find((a: any) => a.is_default);
+        if (defaultAddr) setSelectedAddressId(defaultAddr.id);
+        else if (normalized.length > 0) setSelectedAddressId(normalized[0].id);
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setIsInitialLoading(false);
+      }
+    };
 
-    try {
-      const parsed = JSON.parse(stored) as Partial<AddressDraft>[];
-      return parsed.length > 0
-        ? normalizeDefault(
-            parsed.map((address, index) => {
-              const normalized = normalizeAddressShape(
-                address,
-                userName,
-                userMobile
-              );
+    fetchAddresses();
+  }, []);
 
-              return {
-                ...normalized,
-                id: address.id || `address-${index + 1}`,
-              };
-            })
-          )
-        : [
-            {
-              ...createEmptyAddressDraft(userName, userMobile),
-              is_default: true,
-            },
-          ];
-    } catch {
-      return [
-        {
-          ...createEmptyAddressDraft(userName, userMobile),
-          is_default: true,
-        },
-      ];
-    }
-  });
-  const [selectedAddressId, setSelectedAddressId] = useState(
-    () =>
-      addresses.find((address) => address.is_default)?.id ?? addresses[0]?.id ?? ""
-  );
+  const selectedAddress = useMemo(() => {
+    if (isEditing && draftAddress) return draftAddress;
+    return addresses.find((address) => address.id === selectedAddressId) ?? addresses[0] ?? null;
+  }, [isEditing, draftAddress, addresses, selectedAddressId]);
 
-  const persistAddresses = (nextAddresses: AddressDraft[]) => {
-    const normalized = normalizeDefault(nextAddresses);
-    setAddresses(normalized);
-
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(
-        PROFILE_ADDRESSES_STORAGE_KEY,
-        JSON.stringify(normalized)
-      );
-    }
-  };
-
-  const selectedAddress =
-    addresses.find((address) => address.id === selectedAddressId) ??
-    addresses[0] ??
-    null;
-
-  const selectedLatitude = selectedAddress?.latitude.trim()
+  const selectedLatitude = (selectedAddress?.latitude || "").trim()
     ? Number(selectedAddress.latitude)
     : null;
-  const selectedLongitude = selectedAddress?.longitude.trim()
+  const selectedLongitude = (selectedAddress?.longitude || "").trim()
     ? Number(selectedAddress.longitude)
     : null;
   const geofenceRadius = Number(selectedAddress?.geofence_radius_meters || "10") || 10;
@@ -260,48 +230,130 @@ export default function AccountAddressBook({
   );
 
   const updateAddress = (addressId: string, patch: Partial<AddressDraft>) => {
-    const nextAddresses = addresses.map((address) =>
-      address.id === addressId ? { ...address, ...patch } : address
-    );
-    persistAddresses(nextAddresses);
+    if (isEditing && draftAddress) {
+      setDraftAddress({ ...draftAddress, ...patch });
+    }
   };
 
   const handleAddAddress = () => {
-    const nextAddress = {
-      ...createEmptyAddressDraft(userName, userMobile),
-      id: `address-${crypto.randomUUID()}`,
-    };
-    const nextAddresses = [...addresses, nextAddress];
-    persistAddresses(nextAddresses);
-    setSelectedAddressId(nextAddress.id);
+    const newDraft = createEmptyAddressDraft(userName, userMobile);
+    newDraft.id = "new-draft"; // Temporary ID
+    setDraftAddress(newDraft);
     setIsEditing(true);
   };
 
-  const handleRemoveAddress = (addressId: string) => {
-    if (addresses.length <= 1) {
-      return;
-    }
-
-    const nextAddresses = addresses.filter((address) => address.id !== addressId);
-    persistAddresses(nextAddresses);
-
-    if (selectedAddressId === addressId) {
-      setSelectedAddressId(
-        nextAddresses.find((address) => address.is_default)?.id ??
-          nextAddresses[0]?.id ??
-          ""
-      );
+  const handleEditStart = () => {
+    if (selectedAddress) {
+      setDraftAddress({ ...selectedAddress });
+      setIsEditing(true);
     }
   };
 
-  const handleSetDefault = (addressId: string) => {
-    persistAddresses(
-      addresses.map((address) => ({
-        ...address,
-        is_default: address.id === addressId,
-      }))
-    );
-    setSelectedAddressId(addressId);
+  const handleSaveAddress = async () => {
+    if (!draftAddress) return;
+    
+    setIsSaving(true);
+    setError("");
+
+    try {
+      const isNew = draftAddress.id === "new-draft";
+      const url = isNew ? "/api/auth/addresses" : `/api/auth/addresses/${draftAddress.id}`;
+      const method = isNew ? "POST" : "PATCH";
+
+      // Prepare payload (convert types)
+      const payload = {
+        ...draftAddress,
+        geofence_radius_meters: parseInt(draftAddress.geofence_radius_meters),
+        latitude: parseFloat(draftAddress.latitude),
+        longitude: parseFloat(draftAddress.longitude),
+      };
+      if (isNew) delete (payload as any).id;
+
+      const response = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || "Failed to save address");
+      }
+
+      const savedAddress = await response.json();
+      const normalizedSaved = {
+        ...savedAddress,
+        id: savedAddress.id.toString(),
+        geofence_radius_meters: savedAddress.geofence_radius_meters.toString(),
+      };
+
+      if (isNew) {
+        setAddresses(prev => normalizeDefault([...prev, normalizedSaved]));
+        setSelectedAddressId(normalizedSaved.id);
+      } else {
+        setAddresses(prev => normalizeDefault(prev.map(a => a.id === normalizedSaved.id ? normalizedSaved : a)));
+      }
+
+      onAddressChange?.();
+      setIsEditing(false);
+      setDraftAddress(null);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleRemoveAddress = async (addressId: string) => {
+    if (addresses.length <= 1) return;
+
+    setActionLoadingId(addressId);
+    setError("");
+
+    try {
+      const response = await fetch(`/api/auth/addresses/${addressId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) throw new Error("Failed to delete address");
+
+      setAddresses(prev => {
+        const next = prev.filter(a => a.id !== addressId);
+        return normalizeDefault(next);
+      });
+
+      onAddressChange?.();
+
+      if (selectedAddressId === addressId) {
+        const next = addresses.filter(a => a.id !== addressId);
+        setSelectedAddressId(next[0]?.id || "");
+      }
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleSetDefault = async (addressId: string) => {
+    setActionLoadingId(addressId);
+    setError("");
+
+    try {
+      const response = await fetch(`/api/auth/addresses/${addressId}/set-default`, {
+        method: "POST",
+      });
+
+      if (!response.ok) throw new Error("Failed to set default address");
+
+      setAddresses(prev => normalizeDefault(
+        prev.map(a => ({ ...a, is_default: a.id === addressId }))
+      ));
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setActionLoadingId(null);
+    }
   };
 
   const addressList = useMemo(
@@ -379,95 +431,114 @@ export default function AccountAddressBook({
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#7b7a60]">
             Addresses
           </p>
-          {/* <p className="mt-3 max-w-2xl text-sm leading-6 text-[#6d7452]">
-            Save multiple addresses, choose one default, and pin each location on OpenStreetMap for future geofencing.
-          </p> */}
+          {error && (
+            <p className="mt-2 text-xs text-red-500">{error}</p>
+          )}
         </div>
         <div className="shrink-0">
           <button
             type="button"
             onClick={handleAddAddress}
-            className="inline-flex items-center gap-2 rounded-xl bg-[#253119] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#1c2512]"
+            disabled={isEditing || isInitialLoading}
+            className="inline-flex items-center gap-2 rounded-xl bg-[#253119] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#1c2512] disabled:opacity-50"
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-3.5 w-3.5" />
             Address
           </button>
         </div>
       </div>
 
-      <div className="mt-2 grid gap-3">
-        {addressList.map((address) => {
-          const isSelected = address.id === selectedAddressId;
-
-          return (
-            <div
-              key={address.id}
-              role="button"
-              tabIndex={0}
-              onClick={() => setSelectedAddressId(address.id)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
-                  setSelectedAddressId(address.id);
-                }
-              }}
-              aria-pressed={isSelected}
-              className={`rounded-[1.4rem] border px-4 py-4 text-left transition focus:outline-none focus:ring-2 focus:ring-[color:color-mix(in_srgb,var(--color-rice-green)_18%,transparent)] ${
-                isSelected
-                  ? "border-[var(--color-rice-green)] bg-[#f3f7ed]"
-                  : "border-[#e5e0cc] bg-[#faf7ee] hover:bg-[#f4efdf]"
-              }`}
-            >
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-sm font-semibold text-[#2f3b1f]">
-                      {address.label.trim() || "Untitled address"}
-                    </p>
-                    {address.is_default ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-[#edf4e4] px-2.5 py-1 text-[11px] font-semibold text-[#4d6b35]">
-                        <Star className="h-3.5 w-3.5" />
-                        Default
-                      </span>
-                    ) : null}
-                  </div>
-                  <p className="mt-2 text-sm leading-6 text-[#6d7452]">
-                    {address.summary || "No address details yet."}
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {!address.is_default ? (
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        handleSetDefault(address.id);
-                      }}
-                      className="inline-flex items-center gap-2 rounded-xl border border-[#d8d4be] bg-white px-3 py-2 text-xs font-semibold text-[#5f6848] transition hover:bg-[#f8f5ea]"
-                    >
-                      <Star className="h-3.5 w-3.5" />
-                      Set Default
-                    </button>
-                  ) : null}
-                  {addresses.length > 1 ? (
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        handleRemoveAddress(address.id);
-                      }}
-                      className="inline-flex items-center gap-2 rounded-xl border border-[#e3d6c0] bg-white px-3 py-2 text-xs font-semibold text-[#8a5b2b] transition hover:bg-[#fff8ef]"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      Remove
-                    </button>
-                  ) : null}
-                </div>
-              </div>
+      {isInitialLoading ? (
+        <div className="mt-8 flex justify-center py-12">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#253119] border-t-transparent" />
+        </div>
+      ) : (
+        <div className="mt-2 grid gap-3">
+          {addressList.length === 0 && !isEditing ? (
+            <div className="rounded-[1.4rem] border border-dashed border-[#e5e0cc] bg-[#faf7ee] p-8 text-center">
+              <p className="text-sm text-[#6d7452]">No addresses saved yet.</p>
             </div>
-          );
-        })}
-      </div>
+          ) : (
+            addressList.map((address) => {
+              const isSelected = address.id === selectedAddressId;
+              const isLoading = actionLoadingId === address.id;
+
+              return (
+                <div
+                  key={address.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => !isEditing && setSelectedAddressId(address.id)}
+                  className={`rounded-[1.4rem] border px-4 py-4 text-left transition focus:outline-none focus:ring-2 focus:ring-[color:color-mix(in_srgb,var(--color-rice-green)_18%,transparent)] ${
+                    isEditing && draftAddress?.id !== address.id ? "opacity-50 pointer-events-none" : ""
+                  } ${
+                    isSelected
+                      ? "border-[var(--color-rice-green)] bg-[#f3f7ed]"
+                      : "border-[#e5e0cc] bg-[#faf7ee] hover:bg-[#f4efdf]"
+                  }`}
+                >
+                  <div className="flex flex-col md:flex-row md:items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-semibold text-[#2f3b1f]">
+                          {(address.label || "").trim() || "Untitled address"}
+                        </p>
+                        {address.is_default ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-[#edf4e4] px-2.5 py-1 text-[11px] font-semibold text-[#4d6b35]">
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            Default
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="mt-2 text-sm leading-6 text-[#6d7452]">
+                        {address.summary || "No address details yet."}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {!address.is_default && !isEditing ? (
+                        <button
+                          type="button"
+                          disabled={!!actionLoadingId}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleSetDefault(address.id);
+                          }}
+                          className="inline-flex items-center gap-2 rounded-xl border border-[#d8d4be] bg-white px-3 py-2 text-xs font-semibold text-[#5f6848] transition hover:bg-[#f8f5ea] disabled:opacity-50"
+                        >
+                          {isLoading ? (
+                            <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#5f6848] border-t-transparent" />
+                          ) : (
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                          )}
+                          Set Default
+                        </button>
+                      ) : null}
+                      {addresses.length > 1 && !isEditing ? (
+                        <button
+                          type="button"
+                          disabled={!!actionLoadingId}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleRemoveAddress(address.id);
+                          }}
+                          className="inline-flex items-center gap-2 rounded-xl border border-[#e3d6c0] bg-white px-3 py-2 text-xs font-semibold text-[#8a5b2b] transition hover:bg-[#fff8ef] disabled:opacity-50"
+                        >
+                          {isLoading ? (
+                            <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#8a5b2b] border-t-transparent" />
+                          ) : (
+                            <Trash2 className="h-3.5 w-3.5" />
+                          )}
+                          Remove
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
 
       {selectedAddress ? (
         <div className="mt-5 grid gap-4 xl:grid-cols-[1.08fr_0.92fr] xl:items-stretch">
@@ -484,7 +555,7 @@ export default function AccountAddressBook({
               {!isEditing ? (
                 <button
                   type="button"
-                  onClick={() => setIsEditing(true)}
+                  onClick={handleEditStart}
                   className="inline-flex items-center gap-2 rounded-xl border border-[#d8d4be] bg-white px-3 py-2 text-xs font-semibold text-[#4e5a3d] transition hover:bg-[#f8f5ea]"
                 >
                   <PencilLine className="h-3.5 w-3.5" />
@@ -497,15 +568,33 @@ export default function AccountAddressBook({
               <div className="flex h-full flex-1 flex-col">
                 <div className="grid gap-3">
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <select value={selectedAddress.label} onChange={(event) => updateAddress(selectedAddress.id, { label: event.target.value })} className="rounded-xl border border-[#d8d4be] bg-white px-4 py-3 text-sm text-[#2f3b1f] outline-none transition focus:border-[var(--color-rice-green)] focus:ring-2 focus:ring-[color:color-mix(in_srgb,var(--color-rice-green)_18%,transparent)]">
-                    <option value="">Select address label</option>
-                    {ADDRESS_LABEL_OPTIONS.map((label) => (
-                      <option key={label} value={label}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
-                  <input type="tel" inputMode="tel" value={selectedAddress.phone} onChange={(event) => updateAddress(selectedAddress.id, { phone: formatMobileNumber(event.target.value) })} placeholder="+63 9266-301-717" className="rounded-xl border border-[#d8d4be] bg-white px-4 py-3 text-sm text-[#2f3b1f] outline-none transition focus:border-[var(--color-rice-green)] focus:ring-2 focus:ring-[color:color-mix(in_srgb,var(--color-rice-green)_18%,transparent)]" />
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-[#9a987b] ml-1">Recipient Name</label>
+                    <input type="text" value={selectedAddress.recipient_name} onChange={(event) => updateAddress(selectedAddress.id, { recipient_name: event.target.value })} placeholder="Full name" className="rounded-xl border border-[#d8d4be] bg-white px-4 py-3 text-sm text-[#2f3b1f] outline-none transition focus:border-[var(--color-rice-green)] focus:ring-2 focus:ring-[color:color-mix(in_srgb,var(--color-rice-green)_18%,transparent)]" />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-[#9a987b] ml-1">Contact Phone</label>
+                    <input type="tel" inputMode="tel" value={selectedAddress.phone} onChange={(event) => updateAddress(selectedAddress.id, { phone: formatMobileNumber(event.target.value) })} placeholder="+63 9266-301-717" className="rounded-xl border border-[#d8d4be] bg-white px-4 py-3 text-sm text-[#2f3b1f] outline-none transition focus:border-[var(--color-rice-green)] focus:ring-2 focus:ring-[color:color-mix(in_srgb,var(--color-rice-green)_18%,transparent)]" />
+                  </div>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-[#9a987b] ml-1">Address Label</label>
+                    <input
+                      list="address-label-options"
+                      value={selectedAddress.label}
+                      onChange={(event) => updateAddress(selectedAddress.id, { label: event.target.value })}
+                      placeholder="Enter or select label (e.g. Home)"
+                      className="rounded-xl border border-[#d8d4be] bg-white px-4 py-3 text-sm text-[#2f3b1f] outline-none transition focus:border-[var(--color-rice-green)] focus:ring-2 focus:ring-[color:color-mix(in_srgb,var(--color-rice-green)_18%,transparent)]"
+                    />
+                    <datalist id="address-label-options">
+                      {ADDRESS_LABEL_OPTIONS.map((label) => (
+                        <option key={label} value={label} />
+                      ))}
+                    </datalist>
+                  </div>
+                  {/* Empty space for grid alignment or add another field here if needed */}
+                  <div className="hidden sm:block"></div>
                 </div>
                 <input type="text" value={selectedAddress.address_line_1} onChange={(event) => updateAddress(selectedAddress.id, { address_line_1: event.target.value })} placeholder="Address line 1" className="rounded-xl border border-[#d8d4be] bg-white px-4 py-3 text-sm text-[#2f3b1f] outline-none transition focus:border-[var(--color-rice-green)] focus:ring-2 focus:ring-[color:color-mix(in_srgb,var(--color-rice-green)_18%,transparent)]" />
                 <input type="text" value={selectedAddress.address_line_2} onChange={(event) => updateAddress(selectedAddress.id, { address_line_2: event.target.value })} placeholder="Address line 2" className="rounded-xl border border-[#d8d4be] bg-white px-4 py-3 text-sm text-[#2f3b1f] outline-none transition focus:border-[var(--color-rice-green)] focus:ring-2 focus:ring-[color:color-mix(in_srgb,var(--color-rice-green)_18%,transparent)]" />
@@ -562,18 +651,26 @@ export default function AccountAddressBook({
                 <div className="mt-auto flex flex-col gap-3 border-t border-[#e5e0cc] pt-4 sm:flex-row sm:justify-end">
                   <button
                     type="button"
-                    onClick={() => setIsEditing(false)}
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#d8d4be] bg-[#faf7ee] px-4 py-3 text-sm font-semibold text-[#364127] transition hover:bg-[#f4efdf] sm:w-auto"
+                    onClick={() => {
+                      setIsEditing(false);
+                      setDraftAddress(null);
+                    }}
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#d8d4be] bg-[#faf7ee] px-3 py-2 text-xs font-semibold text-[#364127] transition hover:bg-[#f4efdf] sm:w-auto"
                   >
-                    <X className="h-4 w-4" />
+                    <X className="h-3.5 w-3.5" />
                     Cancel
                   </button>
                   <button
                     type="button"
-                    onClick={() => setIsEditing(false)}
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#253119] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#1c2512] sm:w-auto"
+                    onClick={handleSaveAddress}
+                    disabled={isSaving}
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#253119] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#1c2512] sm:w-auto disabled:opacity-50"
                   >
-                    <Save className="h-4 w-4" />
+                    {isSaving ? (
+                      <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    ) : (
+                      <Save className="h-3.5 w-3.5" />
+                    )}
                     Save Address
                   </button>
                 </div>
@@ -594,10 +691,10 @@ export default function AccountAddressBook({
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="rounded-2xl bg-white/90 px-4 py-3">
                     <p className="text-xs uppercase tracking-[0.18em] text-[#9a987b]">
-                      Address Label
+                      Recipient Name
                     </p>
                     <p className="mt-2 font-medium text-[#364127]">
-                      {selectedAddress?.label || "Not set"}
+                      {selectedAddress?.recipient_name || "Not set"}
                     </p>
                   </div>
                   <div className="rounded-2xl bg-white/90 px-4 py-3">
@@ -606,6 +703,14 @@ export default function AccountAddressBook({
                     </p>
                     <p className="mt-2 font-medium text-[#364127]">
                       {selectedAddress?.phone || "Not set"}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl bg-white/90 px-4 py-3">
+                    <p className="text-xs uppercase tracking-[0.18em] text-[#9a987b]">
+                      Address Label
+                    </p>
+                    <p className="mt-2 font-medium text-[#364127]">
+                      {selectedAddress?.label || "Not set"}
                     </p>
                   </div>
                 </div>

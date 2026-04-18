@@ -15,7 +15,6 @@ import {
 import { useRef, useState } from "react";
 
 import AuthShell from "@/app/(public)/(auth)/_components/auth-shell";
-import InstallAppButton from "@/app/(public)/(auth)/login/_components/install-app-button";
 import { useAuthStore, type AuthUser } from "@/app/_stores/auth-store";
 import { savePendingVerificationUser } from "@/app/(public)/(auth)/register/_lib/pending-verification";
 
@@ -203,6 +202,7 @@ export default function LoginCard() {
             width={420}
             height={102}
             className="h-24 w-auto"
+            style={{ width: "auto" }}
             priority
           />
         </div>
@@ -409,10 +409,6 @@ export default function LoginCard() {
           )}
           <span>{loginMethod === "mobile" ? "Email" : "Mobile Number"}</span>
         </button>
-      </div>
-
-      <div className="mt-3">
-        <InstallAppButton />
       </div>
 
       <p className="mt-8 text-center text-sm text-[#6d7452] lg:text-left">

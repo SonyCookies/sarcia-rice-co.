@@ -48,6 +48,7 @@ export default function VerificationSuccessCard({
             width={420}
             height={102}
             className="h-24 w-auto"
+            style={{ width: "auto" }}
             priority
           />
         </div>

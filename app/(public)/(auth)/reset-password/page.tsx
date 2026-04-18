@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
 import ResetPasswordCard from "@/app/(public)/(auth)/reset-password/_components/reset-password-card";
 
@@ -7,6 +8,23 @@ export const metadata: Metadata = {
   description:
     "Set a new RiceProject password using the secure reset link from your recovery request.",
 };
+
+function ResetPasswordCardFallback() {
+  return (
+    <div className="w-full max-w-6xl overflow-hidden rounded-[2rem] border border-[#d8d4be] bg-[#fffdf7] shadow-[0_24px_80px_rgba(74,92,54,0.14)]">
+      <div className="flex min-h-[720px] items-center justify-center p-8 md:p-12">
+        <div className="w-full max-w-md animate-pulse space-y-4">
+          <div className="mx-auto h-24 w-64 rounded-2xl bg-[#ebe6d3]" />
+          <div className="mx-auto h-7 w-52 rounded-full bg-[#ebe6d3]" />
+          <div className="mx-auto h-4 w-72 rounded-full bg-[#f1eddf]" />
+          <div className="h-14 rounded-2xl bg-[#f1eddf]" />
+          <div className="h-14 rounded-2xl bg-[#f1eddf]" />
+          <div className="h-14 rounded-2xl bg-[#f1eddf]" />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function ResetPasswordPage() {
   return (
@@ -23,7 +41,9 @@ export default function ResetPasswordPage() {
       <div className="pointer-events-none absolute bottom-0 right-0 h-[26rem] w-[26rem] translate-x-1/4 translate-y-1/4 rounded-full bg-[color:color-mix(in_srgb,var(--color-rice-green)_12%,transparent)] blur-3xl" />
 
       <div className="relative mx-auto flex min-h-[calc(100vh-3rem)] max-w-7xl items-center justify-center">
-        <ResetPasswordCard />
+        <Suspense fallback={<ResetPasswordCardFallback />}>
+          <ResetPasswordCard />
+        </Suspense>
       </div>
     </div>
   );

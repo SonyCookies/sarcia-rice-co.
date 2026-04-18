@@ -47,6 +47,7 @@ export default function AccountPageContent() {
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [profileSaveMessage, setProfileSaveMessage] = useState("");
   const [profileError, setProfileError] = useState("");
+  const [addressRefreshKey, setAddressRefreshKey] = useState(0);
   const [nameDraft, setNameDraft] = useState(user?.name ?? "");
   const initials = useMemo(() => {
     const name = user?.name?.trim();
@@ -137,15 +138,53 @@ export default function AccountPageContent() {
     setProfileSaveMessage("");
 
     try {
-      if (!nameDraft.trim()) {
+      const trimmedName = nameDraft.trim();
+
+      if (!trimmedName) {
         setProfileError("Full name is required before saving your profile.");
         return;
       }
-      setUser({
-        ...user,
-        name: nameDraft.trim(),
+
+      const response = await fetch("/api/auth/profile", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: trimmedName,
+        }),
       });
-      setProfileSaveMessage("Personal information updated locally.");
+
+      const data = (await response.json().catch(() => null)) as
+        | {
+            message?: string;
+            errors?: Record<string, string[]>;
+            user?: typeof user;
+          }
+        | null;
+
+      if (!response.ok) {
+        setProfileError(
+          data?.errors?.name?.[0] ??
+            data?.message ??
+            "Unable to update your profile right now."
+        );
+        return;
+      }
+
+      if (data?.user) {
+        setUser(data.user);
+      } else {
+        setUser({
+          ...user,
+          name: trimmedName,
+        });
+      }
+
+      setNameDraft(data?.user?.name ?? trimmedName);
+      setProfileSaveMessage(
+        data?.message ?? "Personal information updated successfully."
+      );
       setIsEditingPersonalInfo(false);
     } finally {
       setIsSavingProfile(false);
@@ -423,18 +462,19 @@ export default function AccountPageContent() {
       <AccountAddressBook
         userMobile={user?.mobile ?? ""}
         userName={nameDraft.trim() || user?.name || ""}
+        onAddressChange={() => setAddressRefreshKey((prev) => prev + 1)}
       />
 
-      <AccountDeliveryPreferences />
+      <AccountDeliveryPreferences refreshKey={addressRefreshKey} />
 
       <AccountPaymentPreferences />
 
       <button
         type="button"
         onClick={handleLogout}
-        className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#d8d4be] bg-[#253119] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#1c2512] lg:hidden"
+        className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#d8d4be] bg-[#253119] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#1c2512] lg:hidden"
       >
-        <LogOut className="h-4 w-4" />
+        <LogOut className="h-3.5 w-3.5" />
         Logout
       </button>
     </CustomerShell>

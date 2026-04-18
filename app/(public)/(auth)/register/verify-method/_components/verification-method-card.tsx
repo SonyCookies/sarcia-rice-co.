@@ -100,8 +100,7 @@ export default function VerificationMethodCard() {
   return (
     <AuthShell
       title={title}
-      description="We’ll send a 6-digit code to the method you choose. Email works right away, and phone is ready for your SMS provider once you plug it in."
-      {...{ description }}
+      description={description}
       stats={[
         { label: "Code length", value: "6 digits" },
         { label: "Code expiry", value: "10 min" },
@@ -116,6 +115,7 @@ export default function VerificationMethodCard() {
             width={420}
             height={102}
             className="h-24 w-auto"
+            style={{ width: "auto" }}
             priority
           />
         </div>
@@ -130,7 +130,9 @@ export default function VerificationMethodCard() {
 
         {user ? (
           <div className="mt-5 rounded-2xl border border-[#e7e1c8] bg-[#faf7ee] p-4 text-sm text-[#6d7452]">
-            We&apos;ll use <span className="font-semibold text-[#364127]">{user.email}</span> or{" "}
+            We&apos;ll use{" "}
+            <span className="font-semibold text-[#364127]">{user.email}</span>{" "}
+            or{" "}
             <span className="font-semibold text-[#364127]">{user.mobile}</span>.
           </div>
         ) : null}
