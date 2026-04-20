@@ -165,7 +165,7 @@ export default function RegisterCard() {
   return (
     <AuthShell
       title="Create your account and start ordering fresh rice online."
-      description="Join RiceProject to shop directly, save delivery details, and earn rewards on repeat orders."
+      description="Join Sarcia Rice Co. to shop directly, save delivery details, and earn rewards on repeat orders."
       stats={[
         { label: "Families served", value: "320+" },
         { label: "Orders delivered this week", value: "52" },

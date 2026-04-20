@@ -16,12 +16,16 @@ import { useRef, useState } from "react";
 
 import AuthShell from "@/app/(public)/(auth)/_components/auth-shell";
 import { useAuthStore, type AuthUser } from "@/app/_stores/auth-store";
+import { savePendingTwoFactorChallenge } from "@/app/_lib/pending-two-factor-challenge";
 import { savePendingVerificationUser } from "@/app/(public)/(auth)/register/_lib/pending-verification";
 
 type LoginResponse = {
   message?: string;
   errors?: Record<string, string[]>;
   requires_verification?: boolean;
+  requires_two_factor?: boolean;
+  purpose?: "login";
+  two_factor_method?: "email" | "phone";
   verification_method?: "email" | "phone";
   user?: AuthUser;
 };
@@ -45,6 +49,9 @@ export default function LoginCard() {
     Partial<Record<"identifier" | "password", string>>
   >({});
   const passwordInputRef = useRef<HTMLInputElement>(null);
+
+  const getPostLoginPath = (role?: string) =>
+    role?.toLowerCase() === "admin" ? "/admin" : "/";
 
   const handleLoginMethodChange = (nextMethod: "email" | "mobile") => {
     setLoginMethod(nextMethod);
@@ -121,6 +128,19 @@ export default function LoginCard() {
         | LoginResponse
         | null;
 
+      if (response.ok && data?.requires_two_factor && data.user && data.two_factor_method) {
+        savePendingTwoFactorChallenge({
+          purpose: "login",
+          method: data.two_factor_method,
+          returnTo: getPostLoginPath(data.user.role),
+          email: data.user.email,
+          mobile: data.user.mobile,
+        });
+
+        router.push("/two-factor-challenge");
+        return;
+      }
+
       if (!response.ok) {
         if (
           data?.requires_verification &&
@@ -174,6 +194,8 @@ export default function LoginCard() {
 
       if (data?.user) {
         setUser(data.user);
+        router.push(getPostLoginPath(data.user.role));
+        return;
       }
 
       router.push("/");

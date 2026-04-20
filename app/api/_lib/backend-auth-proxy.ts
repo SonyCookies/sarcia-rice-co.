@@ -61,6 +61,7 @@ export async function proxyAuthedRequest(
     if (!response.ok) {
       return NextResponse.json(
         {
+          ...(data && typeof data === "object" ? data : {}),
           message: data?.message ?? errorMessage,
           errors: data?.errors ?? {},
         },

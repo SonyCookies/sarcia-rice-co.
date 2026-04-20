@@ -11,10 +11,8 @@ import {
   UserRound,
   X,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
-import { savePendingVerificationUser } from "@/app/(public)/(auth)/register/_lib/pending-verification";
 import { AccountSectionSkeleton } from "@/app/(user)/account/_components/account-page-skeleton";
 import CustomerShell from "@/app/(user)/_components/customer-shell";
 import { useAuthStore } from "@/app/_stores/auth-store";
@@ -49,13 +47,8 @@ const AccountPaymentPreferences = dynamic(
 );
 
 export default function AccountPageContent() {
-  const router = useRouter();
   const user = useAuthStore((state) => state.user);
   const setUser = useAuthStore((state) => state.setUser);
-  const [verificationError, setVerificationError] = useState("");
-  const [activeVerificationMethod, setActiveVerificationMethod] = useState<
-    "email" | "phone" | null
-  >(null);
   const [isEditingPersonalInfo, setIsEditingPersonalInfo] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [profileSaveMessage, setProfileSaveMessage] = useState("");
@@ -75,53 +68,6 @@ export default function AccountPageContent() {
       .map((part) => part[0]?.toUpperCase() ?? "")
       .join("");
   }, [user?.name]);
-
-  const handleStartVerification = async (method: "email" | "phone") => {
-    if (!user) {
-      return;
-    }
-
-    setVerificationError("");
-    setActiveVerificationMethod(method);
-
-    try {
-      savePendingVerificationUser(user, {
-        source: "account",
-      });
-
-      const response = await fetch("/api/auth/verification/send-otp", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          user_id: user.id,
-          method,
-        }),
-      });
-
-      const data = (await response.json().catch(() => null)) as
-        | {
-            message?: string;
-          }
-        | null;
-
-      if (!response.ok) {
-        setVerificationError(
-          data?.message ?? "Unable to send the verification code."
-        );
-        return;
-      }
-
-      router.push(`/verify-otp?method=${method}&source=account`);
-    } catch {
-      setVerificationError(
-        "Something went wrong while sending the verification code."
-      );
-    } finally {
-      setActiveVerificationMethod(null);
-    }
-  };
 
   const handleCancelEdit = () => {
     setIsEditingPersonalInfo(false);
@@ -199,36 +145,91 @@ export default function AccountPageContent() {
       searchPlaceholder="Search delivery settings, rewards, or account help"
     >
       <section className="overflow-hidden rounded-[2rem] border border-[#d8d4be] bg-white/92 shadow-[0_30px_80px_rgba(44,60,29,0.12)]">
-        <div className="relative h-44 bg-[linear-gradient(135deg,#2c441d_0%,#3d5a2b_52%,#5d7f42_100%)] sm:h-52">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,color-mix(in_srgb,var(--color-rich-gold)_22%,transparent),transparent_24%),radial-gradient(circle_at_bottom_right,color-mix(in_srgb,#ffffff_10%,transparent),transparent_28%)]" />
-          <p className="absolute left-5 top-5 text-xs font-semibold uppercase tracking-[0.24em] text-[var(--color-rich-gold)] sm:left-7 sm:top-7">
-            Account
-          </p>
-          <div className="absolute bottom-5 left-[7.75rem] right-5 sm:left-[9.25rem] sm:right-7 lg:hidden">
-            <h1 className="font-poppins text-2xl font-semibold leading-tight text-white sm:text-3xl">
-              {user?.name ?? "Guest User"}
-            </h1>
-          </div>
-          <div className="absolute bottom-6 left-40 hidden lg:block">
-            <h1 className="font-poppins text-4xl font-semibold text-white">
-              {user?.name ?? "Guest User"}
-            </h1>
+        <div className="relative overflow-hidden bg-[linear-gradient(135deg,#243716_0%,#355125_48%,#5f7f43_100%)] px-5 py-6 sm:px-7 sm:py-7">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,color-mix(in_srgb,var(--color-rich-gold)_22%,transparent),transparent_22%),radial-gradient(circle_at_bottom_right,color-mix(in_srgb,#ffffff_12%,transparent),transparent_30%)]" />
+          <div className="absolute -right-12 top-8 h-32 w-32 rounded-full bg-white/8 blur-2xl sm:h-40 sm:w-40" />
+          <div className="absolute bottom-0 left-1/3 h-24 w-24 rounded-full bg-[color:color-mix(in_srgb,var(--color-rich-gold)_18%,transparent)] blur-2xl" />
+
+          <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-2xl">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--color-rich-gold)]">
+                Account
+              </p>
+              <h1 className="mt-3 font-poppins text-3xl font-semibold leading-tight text-white sm:text-4xl">
+                Your profile, delivery details, and verification status in one place.
+              </h1>
+              <p className="mt-4 max-w-xl text-sm leading-7 text-[#eef2de] sm:text-base">
+                Keep your personal details current so orders, delivery updates, and account recovery all stay smooth and secure.
+              </p>
+            </div>
+
+            <div className="rounded-[1.6rem] border border-white/12 bg-white/10 p-4 backdrop-blur-sm sm:min-w-[280px]">
+              <p className="text-xs uppercase tracking-[0.18em] text-[#d9e4be]">
+                Profile Snapshot
+              </p>
+              <div className="mt-4 grid gap-3">
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-sm text-[#eef2de]">Email</span>
+                  <span className="rounded-full bg-white/12 px-2.5 py-1 text-xs font-semibold text-white">
+                    {user?.email_verified_at ? "Verified" : "Pending"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-sm text-[#eef2de]">Mobile</span>
+                  <span className="rounded-full bg-white/12 px-2.5 py-1 text-xs font-semibold text-white">
+                    {user?.mobile_verified_at ? "Verified" : "Pending"}
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="relative px-5 pb-5 pt-0 sm:px-7 sm:pb-7">
-          <div className="-mt-12 flex flex-col gap-5 sm:-mt-14 lg:-mt-16 lg:flex-row lg:items-start lg:justify-between">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
+        <div className="relative px-5 pb-5 pt-5 sm:px-7 sm:pb-7 sm:pt-6">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
               <div className="flex h-24 w-24 items-center justify-center rounded-[2rem] border-4 border-white bg-[linear-gradient(135deg,#4d6b35,#769158)] text-2xl font-semibold text-white shadow-[0_18px_44px_rgba(77,107,53,0.28)] sm:h-28 sm:w-28 sm:text-3xl">
                 {initials}
               </div>
-              <div className="pb-1">
-                <div className="mt-2 flex flex-wrap gap-2">
-                  <span className="inline-flex items-center gap-2 rounded-full bg-[#edf4e4] px-3 py-1 text-xs font-semibold text-[#4d6b35] capitalize lg:bg-[#2c441d]/10">
+
+              <div className="space-y-3">
+                <div>
+                  <p className="font-poppins text-2xl font-semibold text-[#2f3b1f] sm:text-3xl">
+                    {user?.name ?? "Guest User"}
+                  </p>
+                  <p className="mt-1 text-sm text-[#6d7452]">
+                    {user?.email ?? "No email yet"}
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <span className="inline-flex items-center gap-2 rounded-full bg-[#edf4e4] px-3 py-1 text-xs font-semibold text-[#4d6b35] capitalize">
                     <BadgeCheck className="h-3.5 w-3.5" />
                     {user?.role ? `${user.role} member` : "customer member"}
                   </span>
+                  <span className="inline-flex rounded-full bg-[#f4efdf] px-3 py-1 text-xs font-semibold text-[#7c7b55]">
+                    {user?.mobile ? `+63 ${user.mobile}` : "No mobile saved yet"}
+                  </span>
                 </div>
+              </div>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2 lg:min-w-[360px]">
+              <div className="rounded-[1.4rem] border border-[#e5e0cc] bg-[#faf7ee] px-4 py-4">
+                <p className="text-xs uppercase tracking-[0.18em] text-[#9a987b]">
+                  Email status
+                </p>
+                <p className="mt-2 text-sm font-semibold text-[#2f3b1f]">
+                  {user?.email_verified_at ? "Ready for account recovery" : "Needs verification"}
+                </p>
+              </div>
+              <div className="rounded-[1.4rem] border border-[#e5e0cc] bg-[#faf7ee] px-4 py-4">
+                <p className="text-xs uppercase tracking-[0.18em] text-[#9a987b]">
+                  Mobile status
+                </p>
+                <p className="mt-2 text-sm font-semibold text-[#2f3b1f]">
+                  {user?.mobile_verified_at ? "Ready for OTP updates" : "Needs verification"}
+                </p>
               </div>
             </div>
           </div>
@@ -247,9 +248,7 @@ export default function AccountPageContent() {
         </div>
       ) : null}
 
-      <section className="grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
-        <div>
-          <section className="rounded-[2rem] border border-[#ddd9c6] bg-white/92 p-5 shadow-[0_22px_50px_rgba(78,95,58,0.08)] sm:p-6">
+      <section className="rounded-[2rem] border border-[#ddd9c6] bg-white/92 p-5 shadow-[0_22px_50px_rgba(78,95,58,0.08)] sm:p-6">
             <div className="flex items-start justify-between gap-3">
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#7b7a60]">
                 Personal Information
@@ -382,83 +381,6 @@ export default function AccountPageContent() {
                 </div>
               </div>
             )}
-          </section>
-        </div>
-
-        <div>
-          <section className="rounded-[2rem] border border-[#ddd9c6] bg-white/92 p-5 shadow-[0_22px_50px_rgba(78,95,58,0.08)] sm:p-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#7b7a60]">
-              Verifications
-            </p>
-
-            <div className="mt-5 grid gap-3">
-              <div className="rounded-[1.4rem] border border-[#e5e0cc] bg-[#faf7ee] p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.18em] text-[#9a987b]">
-                      Email Verification
-                    </p>
-                    <p className="mt-2 text-sm font-semibold text-[#2f3b1f]">
-                      {user?.email_verified_at ? "Verified" : "Pending verification"}
-                    </p>
-                  </div>
-                  {!user?.email_verified_at ? (
-                    <button
-                      type="button"
-                      onClick={() => handleStartVerification("email")}
-                      disabled={activeVerificationMethod !== null}
-                      className="inline-flex min-w-[120px] items-center justify-center rounded-xl bg-[#253119] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#1c2512] disabled:cursor-not-allowed disabled:opacity-70"
-                    >
-                      {activeVerificationMethod === "email" ? (
-                        <span className="flex items-center gap-2">
-                          <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
-                          Sending...
-                        </span>
-                      ) : (
-                        "Verify Email"
-                      )}
-                    </button>
-                  ) : null}
-                </div>
-              </div>
-              <div className="rounded-[1.4rem] border border-[#e5e0cc] bg-[#faf7ee] p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.18em] text-[#9a987b]">
-                      Mobile Number Verification
-                    </p>
-                    <p className="mt-2 text-sm font-semibold text-[#2f3b1f]">
-                      {user?.mobile_verified_at ? "Verified" : "Pending verification"}
-                    </p>
-                  </div>
-                  {!user?.mobile_verified_at ? (
-                    <button
-                      type="button"
-                      onClick={() => handleStartVerification("phone")}
-                      disabled={activeVerificationMethod !== null}
-                      className="inline-flex min-w-[124px] items-center justify-center rounded-xl bg-[#253119] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#1c2512] disabled:cursor-not-allowed disabled:opacity-70"
-                    >
-                      {activeVerificationMethod === "phone" ? (
-                        <span className="flex items-center gap-2">
-                          <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
-                          Sending...
-                        </span>
-                      ) : (
-                        "Verify Mobile Number"
-                      )}
-                    </button>
-                  ) : null}
-                </div>
-              </div>
-            </div>
-
-            {verificationError ? (
-              <div className="mt-4 rounded-2xl border border-[#e9cabb] bg-[#fff4ef] px-4 py-3 text-sm text-[#a14c34]">
-                {verificationError}
-              </div>
-            ) : null}
-          </section>
-        </div>
       </section>
 
       <AccountAddressBook

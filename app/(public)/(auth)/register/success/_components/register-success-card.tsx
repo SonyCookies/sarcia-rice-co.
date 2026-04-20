@@ -52,7 +52,7 @@ export default function RegisterSuccessCard() {
           Account created successfully.
         </h1>
         <p className="mt-3 text-sm leading-6 text-[#6d7452]">
-          Your RiceProject account is now active. Continue to login and start
+          Your Sarcia Rice Co. account is now active. Continue to login and start
           managing orders, deliveries, and rewards in one place after you verify
           it.
         </p>

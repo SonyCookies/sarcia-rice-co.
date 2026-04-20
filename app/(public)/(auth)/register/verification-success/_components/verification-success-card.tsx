@@ -9,26 +9,52 @@ import AuthShell from "@/app/(public)/(auth)/_components/auth-shell";
 
 type VerificationSuccessCardProps = {
   method: "email" | "phone";
-  source: "register" | "login" | "account";
+  source: "register" | "login" | "account" | "settings";
+  returnTo?: string;
 };
 
 export default function VerificationSuccessCard({
   method,
   source,
+  returnTo,
 }: VerificationSuccessCardProps) {
   const [isLeaving, setIsLeaving] = useState(false);
-  const primaryHref = source === "account" ? "/account" : "/login";
-  const primaryLabel = source === "account" ? "Back to Account" : "Go to Login";
-  const description =
-    source === "account"
+  const primaryHref =
+    returnTo ??
+    (source === "account"
+      ? "/account"
+      : source === "settings"
+        ? "/settings"
+        : "/login");
+  const isAdminSettings = primaryHref === "/admin/settings";
+  const primaryLabel = isAdminSettings
+    ? "Back to Admin Settings"
+    : primaryHref === "/account"
+      ? "Back to Account"
+      : primaryHref === "/settings"
+        ? "Back to Settings"
+        : "Go to Login";
+  const description = isAdminSettings
+    ? "Verification is complete. Your admin recovery and security details are now updated so you can continue managing sign-in protection and account safeguards."
+    : source === "account"
       ? "Verification is complete. Your account details are now updated and you can continue managing your profile, deliveries, and rewards."
-      : "Verification is complete. You can now log in with confidence and start ordering, tracking deliveries, and managing your account.";
-  const readyLabel =
-    source === "account" ? "Back to your profile" : "Ready to sign in";
-  const readyText =
-    source === "account"
+      : source === "settings"
+        ? "Verification is complete. Your security details are now updated and ready for recovery, OTP delivery, and future sign-in checks."
+        : "Verification is complete. You can now log in with confidence and start ordering, tracking deliveries, and managing your account.";
+  const readyLabel = isAdminSettings
+    ? "Back to admin security settings"
+    : primaryHref === "/account"
+      ? "Back to your profile"
+      : primaryHref === "/settings"
+        ? "Back to your security settings"
+        : "Ready to sign in";
+  const readyText = isAdminSettings
+    ? "Return to admin settings to continue managing verification, password, 2FA, and trusted devices."
+    : source === "account"
       ? "Return to your account page to continue managing your verified details."
-      : "Head to the login page to access your verified account.";
+      : source === "settings"
+        ? "Return to settings to continue managing password, 2FA, trusted devices, and verified contact details."
+        : "Head to the login page to access your verified account.";
 
   return (
     <AuthShell
@@ -37,7 +63,16 @@ export default function VerificationSuccessCard({
       stats={[
         { label: "Status", value: "Verified" },
         { label: "Method used", value: method === "email" ? "Email" : "Phone" },
-        { label: "Next step", value: source === "account" ? "Account" : "Login" },
+        {
+          label: "Next step",
+          value: isAdminSettings
+            ? "Admin Settings"
+            : primaryHref === "/account"
+              ? "Account"
+              : primaryHref === "/settings"
+                ? "Settings"
+                : "Login",
+        },
       ]}
     >
       <div className="text-center lg:text-left">
@@ -60,7 +95,7 @@ export default function VerificationSuccessCard({
           <span className="font-semibold text-[#364127]">
             {method === "email" ? "email" : "phone"}
           </span>
-          . You can continue to login and start using RiceProject.
+          . You can continue to login and start using Sarcia Rice Co.
         </p>
 
         <div className="mt-8 grid gap-3 rounded-[1.5rem] border border-[#e7e1c8] bg-[#faf7ee] p-4">
@@ -103,7 +138,13 @@ export default function VerificationSuccessCard({
               <span className="flex items-center gap-2">
                 <LoaderCircle className="h-4 w-4 animate-spin" />
                 <span className="animate-pulse">
-                  {source === "account" ? "Opening account..." : "Opening login..."}
+                  {source === "account"
+                    ? "Opening account..."
+                    : isAdminSettings
+                      ? "Opening admin settings..."
+                      : source === "settings"
+                      ? "Opening settings..."
+                      : "Opening login..."}
                 </span>
               </span>
             ) : (

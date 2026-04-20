@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 import {
@@ -5,6 +6,7 @@ import {
   parseLaravelSessionCookie,
   serializeBackendSessionCookie,
 } from "@/app/_lib/auth-cookie";
+import { getTrustedDeviceCookieName } from "@/app/_lib/trusted-device-cookie";
 
 const backendBaseUrl =
   process.env.LARAVEL_API_URL ?? "http://127.0.0.1:8000/api";
@@ -13,6 +15,9 @@ type LaravelErrorResponse = {
   message?: string;
   errors?: Record<string, string[]>;
   requires_verification?: boolean;
+  requires_two_factor?: boolean;
+  purpose?: "login";
+  two_factor_method?: "email" | "phone";
   verification_method?: "email" | "phone";
   user?: {
     id: number;
@@ -27,6 +32,9 @@ type LaravelErrorResponse = {
 
 export async function POST(request: Request) {
   const body = await request.json();
+  const cookieStore = await cookies();
+  const trustedDeviceCookie = cookieStore.get(getTrustedDeviceCookieName());
+  const browserUserAgent = request.headers.get("user-agent");
 
   try {
     const response = await fetch(`${backendBaseUrl}/login`, {
@@ -34,6 +42,12 @@ export async function POST(request: Request) {
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
+        ...(trustedDeviceCookie?.value
+          ? { "X-Trusted-Device-Token": trustedDeviceCookie.value }
+          : {}),
+        ...(browserUserAgent
+          ? { "X-Forwarded-User-Agent": browserUserAgent }
+          : {}),
       },
       body: JSON.stringify(body),
       cache: "no-store",
@@ -43,30 +57,30 @@ export async function POST(request: Request) {
       | LaravelErrorResponse
       | null;
 
-    if (!response.ok) {
-      return NextResponse.json(
-        {
-          message:
-            response.status === 404
-              ? "The backend login route is not available yet."
-              : data?.message ?? "Unable to sign you in.",
-          errors: data?.errors ?? {},
-          requires_verification: data?.requires_verification ?? false,
-          verification_method: data?.verification_method,
-          user: data?.user,
-        },
-        { status: response.status }
-      );
-    }
-
     const setCookieHeaders =
       typeof response.headers.getSetCookie === "function"
         ? response.headers.getSetCookie()
         : response.headers.get("set-cookie");
 
     const sessionCookie = parseLaravelSessionCookie(setCookieHeaders);
-
-    const nextResponse = NextResponse.json(data, { status: response.status });
+    const nextResponse = NextResponse.json(
+      response.ok
+        ? data
+        : {
+            message:
+              response.status === 404
+                ? "The backend login route is not available yet."
+                : data?.message ?? "Unable to sign you in.",
+            errors: data?.errors ?? {},
+            requires_verification: data?.requires_verification ?? false,
+            verification_method: data?.verification_method,
+            requires_two_factor: data?.requires_two_factor ?? false,
+            purpose: data?.purpose,
+            two_factor_method: data?.two_factor_method,
+            user: data?.user,
+          },
+      { status: response.status }
+    );
 
     if (sessionCookie) {
       nextResponse.cookies.set({

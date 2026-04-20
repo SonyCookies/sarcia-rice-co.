@@ -5,7 +5,7 @@ import VerificationMethodCard from "@/app/(public)/(auth)/register/verify-method
 
 export const metadata: Metadata = {
   title: "Choose Verification Method",
-  description: "Choose whether to verify your RiceProject account by email or phone.",
+  description: "Choose whether to verify your Sarcia Rice Co. account by email or phone.",
 };
 
 function VerificationMethodCardFallback() {

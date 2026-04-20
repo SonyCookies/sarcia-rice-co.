@@ -4,7 +4,7 @@ import RegisterSuccessCard from "@/app/(public)/(auth)/register/success/_compone
 
 export const metadata: Metadata = {
   title: "Account Created Successfully",
-  description: "Your RiceProject account has been created successfully.",
+  description: "Your Sarcia Rice Co. account has been created successfully.",
 };
 
 export default function RegisterSuccessPage() {

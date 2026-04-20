@@ -62,7 +62,7 @@ const navItems: NavItem[] = [
   },
   {
     description:
-      "Manage your profile, addresses, verifications, delivery notes, and payment section.",
+      "Manage your profile, addresses, delivery notes, and payment section.",
     href: "/account",
     icon: UserRound,
     id: "account",
@@ -77,10 +77,6 @@ const navItems: NavItem[] = [
       "phone",
       "address",
       "addresses",
-      "verification",
-      "verifications",
-      "verify",
-      "verifacitons",
       "delivery",
       "delivery note",
       "delivery notes",
@@ -108,8 +104,157 @@ const navItems: NavItem[] = [
       "email updates",
       "controls",
       "preferences",
+      "verification",
+      "verifications",
+      "verify",
+      "verified",
+      "email verification",
+      "mobile verification",
+      "otp verification",
     ],
     label: "Settings",
+  },
+];
+
+const searchItems: NavItem[] = [
+  ...navItems,
+  {
+    description: "Change your account password from the dedicated security page.",
+    href: "/settings/change-password",
+    icon: Settings,
+    id: "settings-change-password",
+    keywords: [
+      "change password",
+      "password",
+      "password update",
+      "password security",
+      "security password",
+      "credential",
+      "credentials",
+    ],
+    label: "Change Password",
+  },
+  {
+    description: "Update your email address and verify it again for recovery and security alerts.",
+    href: "/settings/change-email",
+    icon: Settings,
+    id: "settings-change-email",
+    keywords: [
+      "change email",
+      "email",
+      "email address",
+      "update email",
+      "new email",
+      "recovery email",
+      "verify email",
+      "email verification",
+    ],
+    label: "Change Email",
+  },
+  {
+    description: "Update your mobile number and re-verify it for OTP and delivery updates.",
+    href: "/settings/change-mobile",
+    icon: Settings,
+    id: "settings-change-mobile",
+    keywords: [
+      "change mobile",
+      "mobile",
+      "phone",
+      "number",
+      "mobile number",
+      "update mobile",
+      "update phone",
+      "otp number",
+      "verify mobile",
+      "mobile verification",
+      "phone verification",
+    ],
+    label: "Change Mobile Number",
+  },
+  {
+    description: "Manage two-factor authentication and choose how you verify sensitive account actions.",
+    href: "/settings/two-factor-authentication",
+    icon: Settings,
+    id: "settings-two-factor",
+    keywords: [
+      "two factor",
+      "2fa",
+      "two-factor authentication",
+      "authenticator",
+      "otp",
+      "verification method",
+      "security code",
+    ],
+    label: "Two-Factor Authentication",
+  },
+  {
+    description: "Verify your email or mobile number and manage related security checks from settings.",
+    href: "/settings",
+    icon: Settings,
+    id: "settings-verifications",
+    keywords: [
+      "verification",
+      "verifications",
+      "verify",
+      "verified",
+      "verify email",
+      "verify mobile",
+      "email verification",
+      "mobile verification",
+      "otp",
+      "verification code",
+      "security check",
+    ],
+    label: "Verifications",
+  },
+  {
+    description: "Review browsers and devices that can skip login verification.",
+    href: "/settings/trusted-devices",
+    icon: Settings,
+    id: "settings-trusted-devices",
+    keywords: [
+      "trusted devices",
+      "trusted device",
+      "device",
+      "browser",
+      "session",
+      "recognized device",
+      "login device",
+    ],
+    label: "Trusted Devices",
+  },
+  {
+    description: "Choose email, SMS, and browser push alerts for orders, deliveries, and account activity.",
+    href: "/settings/alerts-notifications",
+    icon: Bell,
+    id: "settings-alerts-notifications",
+    keywords: [
+      "alerts",
+      "notifications",
+      "push notifications",
+      "browser push",
+      "email alerts",
+      "sms alerts",
+      "message preferences",
+      "communication settings",
+    ],
+    label: "Alerts & Notifications",
+  },
+  {
+    description: "Read how your profile, orders, and verification data are handled.",
+    href: "/settings/privacy-account-care",
+    icon: Settings,
+    id: "settings-privacy-account-care",
+    keywords: [
+      "privacy",
+      "account care",
+      "data",
+      "data handling",
+      "profile data",
+      "verification data",
+      "order data",
+    ],
+    label: "Privacy & Account Care",
   },
 ];
 
@@ -160,7 +305,7 @@ export default function CustomerShell({
 
     const queryTokens = normalizedQuery.split(/\s+/).filter(Boolean);
 
-    return navItems
+    return searchItems
       .map((item) => {
         const haystacks = [
           item.label.toLowerCase(),
@@ -299,113 +444,202 @@ export default function CustomerShell({
 
       <div className="relative flex min-h-screen flex-1 flex-col">
         <header className="sticky top-0 z-20 border-b border-[#ddd9c6] bg-[#f8f6ea]/90 backdrop-blur">
-          <div className="mx-auto flex w-full max-w-7xl items-center gap-3 px-4 py-4 sm:px-6 xl:px-8">
-            <div className="xl:hidden">
-              <Image
-                src="/logo/sarciariceco.svg"
-                alt="Sarcia Rice Co."
-                width={132}
-                height={32}
-                className="h-8 w-auto"
-                style={{ width: "auto" }}
-                priority
-              />
-            </div>
-
-            <div className="relative hidden min-w-0 flex-1 md:flex">
-              <div className="flex w-full items-center gap-3 rounded-2xl border border-[#dbd7c2] bg-white/85 px-4 py-3 shadow-[0_10px_24px_rgba(78,95,58,0.06)]">
-                <Search className="h-4 w-4 text-[#8b8d70]" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  placeholder={searchPlaceholder}
-                  onBlur={() => {
-                    window.setTimeout(() => {
-                      setIsSearchFocused(false);
-                    }, 120);
-                  }}
-                  onChange={(event) => setSearchQuery(event.target.value)}
-                  onFocus={() => setIsSearchFocused(true)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" && searchResults[0]) {
-                      event.preventDefault();
-                      handleSelectSearchResult(searchResults[0].href);
-                    }
-                  }}
-                  className="w-full bg-transparent text-sm text-[#2f3b1f] outline-none placeholder:text-[#9a9b7d]"
+          <div className="mx-auto flex w-full max-w-7xl px-4 py-4 sm:px-6 xl:px-8">
+            <div className="flex w-full items-center gap-3">
+              <div
+                className={`origin-left shrink-0 overflow-hidden transition-all duration-300 ease-out xl:hidden ${
+                  isSearchFocused
+                    ? "pointer-events-none max-w-0 scale-95 opacity-0"
+                    : "max-w-[132px] scale-100 opacity-100"
+                }`}
+              >
+                <Image
+                  src="/logo/sarciariceco.svg"
+                  alt="Sarcia Rice Co."
+                  width={132}
+                  height={32}
+                  className="h-8 w-auto"
+                  style={{ width: "auto" }}
+                  priority
                 />
               </div>
 
-              {showSearchPanel ? (
-                <div className="absolute left-0 right-0 top-[calc(100%+0.6rem)] overflow-hidden rounded-[1.4rem] border border-[#d8d4be] bg-white/95 shadow-[0_20px_44px_rgba(78,95,58,0.14)]">
-                  {searchResults.length > 0 ? (
-                    <div className="p-2">
-                      {searchResults.map((item) => {
-                        const Icon = item.icon;
-
-                        return (
-                          <button
-                            key={item.id}
-                            type="button"
-                            onMouseDown={() => handleSelectSearchResult(item.href)}
-                            className="flex w-full items-start gap-3 rounded-2xl px-3 py-3 text-left transition hover:bg-[#f6f2e7]"
-                          >
-                            <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-2xl bg-[#f4efe0] text-[var(--color-rice-green)]">
-                              <Icon className="h-4 w-4" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="text-sm font-semibold text-[#2f3b1f]">
-                                {item.label}
-                              </p>
-                              <p className="mt-1 text-xs leading-5 text-[#6d7452]">
-                                {item.description}
-                              </p>
-                              <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9a987b]">
-                                Match: {item.matchedTerm}
-                              </p>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="px-4 py-4 text-sm text-[#6d7452]">
-                      No matching tab found for &quot;{searchQuery.trim()}&quot;.
-                    </div>
-                  )}
-                </div>
-              ) : null}
-            </div>
-
-            <div className="ml-auto flex items-center gap-2 sm:gap-3">
-              <button
-                type="button"
-                className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[#dbd7c2] bg-white/85 text-[#526042] shadow-[0_10px_24px_rgba(78,95,58,0.06)] transition hover:bg-white"
+              <div
+                className={`relative min-w-0 transition-all duration-300 ease-out md:hidden ${
+                  isSearchFocused ? "flex-[1.35]" : "flex-1"
+                }`}
               >
-                <Bell className="h-5 w-5" />
-              </button>
-              <div className="hidden items-center gap-3 rounded-2xl border border-[#dbd7c2] bg-white/90 px-3 py-2.5 shadow-[0_10px_24px_rgba(78,95,58,0.06)] sm:flex">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[linear-gradient(135deg,#4d6b35,#769158)] text-sm font-semibold text-white">
-                  {firstName.slice(0, 1).toUpperCase()}
+                <div
+                  className={`flex w-full items-center gap-3 rounded-2xl border border-[#dbd7c2] bg-white/85 px-4 py-3 shadow-[0_10px_24px_rgba(78,95,58,0.06)] transition-all duration-300 ease-out ${
+                    isSearchFocused
+                      ? "scale-[1.01] shadow-[0_16px_34px_rgba(78,95,58,0.12)]"
+                      : "scale-100"
+                  }`}
+                >
+                  <Search className="h-4 w-4 shrink-0 text-[#8b8d70]" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    placeholder={searchPlaceholder}
+                    onBlur={() => {
+                      window.setTimeout(() => {
+                        setIsSearchFocused(false);
+                      }, 120);
+                    }}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    onFocus={() => setIsSearchFocused(true)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" && searchResults[0]) {
+                        event.preventDefault();
+                        handleSelectSearchResult(searchResults[0].href);
+                      }
+                    }}
+                    className="w-full min-w-0 bg-transparent text-sm text-[#2f3b1f] outline-none placeholder:text-[#9a9b7d]"
+                  />
                 </div>
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-[#2f3b1f]">
-                    {user?.name ?? "Guest User"}
-                  </p>
-                  <p className="truncate text-xs text-[#7b7a60]">
-                    {user?.email ?? "customer@sarciariceco.com"}
-                  </p>
-                </div>
+
+                {showSearchPanel ? (
+                  <div className="absolute left-0 right-0 top-[calc(100%+0.6rem)] z-30 overflow-hidden rounded-[1.4rem] border border-[#d8d4be] bg-white/95 shadow-[0_20px_44px_rgba(78,95,58,0.14)]">
+                    {searchResults.length > 0 ? (
+                      <div className="p-2">
+                        {searchResults.map((item) => {
+                          const Icon = item.icon;
+
+                          return (
+                            <button
+                              key={item.id}
+                              type="button"
+                              onMouseDown={() => handleSelectSearchResult(item.href)}
+                              className="flex w-full items-start gap-3 rounded-2xl px-3 py-3 text-left transition hover:bg-[#f6f2e7]"
+                            >
+                              <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#f4efe0] text-[var(--color-rice-green)]">
+                                <Icon className="h-4 w-4" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-semibold text-[#2f3b1f]">
+                                  {item.label}
+                                </p>
+                                <p className="mt-1 text-xs leading-5 text-[#6d7452]">
+                                  {item.description}
+                                </p>
+                                <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9a987b]">
+                                  Match: {item.matchedTerm}
+                                </p>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="px-4 py-4 text-sm text-[#6d7452]">
+                        No matching tab found for &quot;{searchQuery.trim()}&quot;.
+                      </div>
+                    )}
+                  </div>
+                ) : null}
               </div>
-              <button
-                type="button"
-                onClick={handleLogout}
-                disabled={isLoggingOut}
-                className="hidden items-center gap-2 rounded-2xl bg-[#253119] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#1c2512] disabled:cursor-not-allowed disabled:opacity-70 lg:inline-flex"
+
+              <div className="relative hidden min-w-0 flex-1 md:flex">
+                <div className="flex w-full items-center gap-3 rounded-2xl border border-[#dbd7c2] bg-white/85 px-4 py-3 shadow-[0_10px_24px_rgba(78,95,58,0.06)]">
+                  <Search className="h-4 w-4 text-[#8b8d70]" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    placeholder={searchPlaceholder}
+                    onBlur={() => {
+                      window.setTimeout(() => {
+                        setIsSearchFocused(false);
+                      }, 120);
+                    }}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    onFocus={() => setIsSearchFocused(true)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" && searchResults[0]) {
+                        event.preventDefault();
+                        handleSelectSearchResult(searchResults[0].href);
+                      }
+                    }}
+                    className="w-full bg-transparent text-sm text-[#2f3b1f] outline-none placeholder:text-[#9a9b7d]"
+                  />
+                </div>
+
+                {showSearchPanel ? (
+                  <div className="absolute left-0 right-0 top-[calc(100%+0.6rem)] overflow-hidden rounded-[1.4rem] border border-[#d8d4be] bg-white/95 shadow-[0_20px_44px_rgba(78,95,58,0.14)]">
+                    {searchResults.length > 0 ? (
+                      <div className="p-2">
+                        {searchResults.map((item) => {
+                          const Icon = item.icon;
+
+                          return (
+                            <button
+                              key={item.id}
+                              type="button"
+                              onMouseDown={() => handleSelectSearchResult(item.href)}
+                              className="flex w-full items-start gap-3 rounded-2xl px-3 py-3 text-left transition hover:bg-[#f6f2e7]"
+                            >
+                              <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-2xl bg-[#f4efe0] text-[var(--color-rice-green)]">
+                                <Icon className="h-4 w-4" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-semibold text-[#2f3b1f]">
+                                  {item.label}
+                                </p>
+                                <p className="mt-1 text-xs leading-5 text-[#6d7452]">
+                                  {item.description}
+                                </p>
+                                <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9a987b]">
+                                  Match: {item.matchedTerm}
+                                </p>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="px-4 py-4 text-sm text-[#6d7452]">
+                        No matching tab found for &quot;{searchQuery.trim()}&quot;.
+                      </div>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+
+              <div
+                className={`origin-right ml-auto flex items-center gap-2 transition-all duration-300 ease-out sm:gap-3 ${
+                  isSearchFocused
+                    ? "pointer-events-none max-w-0 scale-95 opacity-0 md:pointer-events-auto md:max-w-none md:scale-100 md:opacity-100"
+                    : "max-w-[220px] scale-100 opacity-100 sm:max-w-[360px] md:max-w-none"
+                }`}
               >
-                <LogOut className="h-4 w-4" />
-                {isLoggingOut ? "Signing Out..." : "Logout"}
-              </button>
+                <button
+                  type="button"
+                  className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[#dbd7c2] bg-white/85 text-[#526042] shadow-[0_10px_24px_rgba(78,95,58,0.06)] transition hover:bg-white"
+                >
+                  <Bell className="h-5 w-5" />
+                </button>
+                <div className="hidden items-center gap-3 rounded-2xl border border-[#dbd7c2] bg-white/90 px-3 py-2.5 shadow-[0_10px_24px_rgba(78,95,58,0.06)] sm:flex">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[linear-gradient(135deg,#4d6b35,#769158)] text-sm font-semibold text-white">
+                    {firstName.slice(0, 1).toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-[#2f3b1f]">
+                      {user?.name ?? "Guest User"}
+                    </p>
+                    <p className="truncate text-xs text-[#7b7a60]">
+                      {user?.email ?? "customer@sarciariceco.com"}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  disabled={isLoggingOut}
+                  className="hidden items-center gap-2 rounded-2xl bg-[#253119] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#1c2512] disabled:cursor-not-allowed disabled:opacity-70 lg:inline-flex"
+                >
+                  <LogOut className="h-4 w-4" />
+                  {isLoggingOut ? "Signing Out..." : "Logout"}
+                </button>
+              </div>
             </div>
           </div>
         </header>

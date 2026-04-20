@@ -11,6 +11,9 @@ export type AuthUser = {
   role: string;
   email_verified_at?: string | null;
   mobile_verified_at?: string | null;
+  primary_verification_method?: "email" | "phone" | null;
+  two_factor_enabled?: boolean;
+  two_factor_method?: "email" | "phone" | null;
 };
 
 type AuthStore = {

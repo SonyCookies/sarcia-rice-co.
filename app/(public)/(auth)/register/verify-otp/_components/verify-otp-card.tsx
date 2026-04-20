@@ -12,12 +12,15 @@ import {
   getPendingVerificationUser,
   type PendingVerificationUser,
 } from "@/app/(public)/(auth)/register/_lib/pending-verification";
+import { useAuthStore } from "@/app/_stores/auth-store";
 
 type VerificationMethod = "email" | "phone";
 const RESEND_COOLDOWN_SECONDS = 30;
 
 export default function VerifyOtpCard() {
   const router = useRouter();
+  const currentUser = useAuthStore((state) => state.user);
+  const setUser = useAuthStore((state) => state.setUser);
   const searchParams = useSearchParams();
   const method = (searchParams.get("method") === "phone"
     ? "phone"
@@ -35,23 +38,32 @@ export default function VerifyOtpCard() {
   const [resendCooldown, setResendCooldown] = useState(RESEND_COOLDOWN_SECONDS);
   const inputRef = useRef<HTMLInputElement>(null);
   const sourceParam = searchParams.get("source");
+  const returnToParam = searchParams.get("returnTo");
   const source =
-    sourceParam === "login" || sourceParam === "account"
+    sourceParam === "login" || sourceParam === "account" || sourceParam === "settings"
       ? sourceParam
       : user?.source ?? "register";
   const fallbackRoute =
-    source === "account"
+    returnToParam ??
+    user?.returnTo ??
+    (source === "account"
       ? "/account"
-      : source === "login"
-        ? "/login"
-        : "/register";
+      : source === "settings"
+        ? "/settings"
+        : source === "login"
+          ? "/login"
+          : "/register");
   const switchMethodHref = `/verify-method?source=${source}`;
   const backLabel =
-    source === "account"
-      ? "Back to account"
-      : source === "login"
-        ? "Back to login"
-        : "";
+    fallbackRoute === "/admin/settings"
+      ? "Back to admin settings"
+      : fallbackRoute === "/settings"
+        ? "Back to settings"
+        : fallbackRoute === "/account"
+          ? "Back to account"
+          : fallbackRoute === "/login"
+            ? "Back to login"
+            : "";
 
   useEffect(() => {
     if (!user) {
@@ -98,6 +110,11 @@ export default function VerifyOtpCard() {
         | {
             message?: string;
             errors?: Record<string, string[]>;
+            user?: Partial<PendingVerificationUser> & {
+              primary_verification_method?: "email" | "phone" | null;
+              two_factor_enabled?: boolean;
+              two_factor_method?: "email" | "phone" | null;
+            };
           }
         | null;
 
@@ -107,8 +124,49 @@ export default function VerifyOtpCard() {
         return;
       }
 
+      if (data?.user && (source === "account" || source === "settings")) {
+        const baseUser = currentUser ?? user;
+
+        if (baseUser) {
+          setUser({
+            id: baseUser.id,
+            name: baseUser.name,
+            email: baseUser.email,
+            mobile: baseUser.mobile,
+            role: baseUser.role,
+            email_verified_at: data.user.email_verified_at ?? baseUser.email_verified_at ?? null,
+            mobile_verified_at: data.user.mobile_verified_at ?? baseUser.mobile_verified_at ?? null,
+            primary_verification_method:
+              data.user.primary_verification_method ??
+              ("primary_verification_method" in baseUser
+                ? baseUser.primary_verification_method ?? null
+                : null),
+            two_factor_enabled:
+              data.user.two_factor_enabled ??
+              ("two_factor_enabled" in baseUser
+                ? baseUser.two_factor_enabled
+                : undefined),
+            two_factor_method:
+              data.user.two_factor_method ??
+              ("two_factor_method" in baseUser
+                ? baseUser.two_factor_method ?? null
+                : null),
+          });
+        }
+      }
+
       clearPendingVerificationUser();
-      router.push(`/verification-success?method=${method}&source=${source}`);
+
+      const successParams = new URLSearchParams({
+        method,
+        source,
+      });
+
+      if (returnToParam ?? user?.returnTo) {
+        successParams.set("returnTo", returnToParam ?? user?.returnTo ?? "");
+      }
+
+      router.push(`/verification-success?${successParams.toString()}`);
     } catch {
       setSubmissionError("Something went wrong while verifying the code.");
     } finally {

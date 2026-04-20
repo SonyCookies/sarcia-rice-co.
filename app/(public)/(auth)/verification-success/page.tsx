@@ -4,12 +4,13 @@ import VerificationSuccessCard from "@/app/(public)/(auth)/register/verification
 
 export const metadata: Metadata = {
   title: "Verification Successful",
-  description: "Your RiceProject verification has completed successfully.",
+  description: "Your Sarcia Rice Co. verification has completed successfully.",
 };
 
 type VerificationSuccessSearchParams = Promise<{
   method?: string;
   source?: string;
+  returnTo?: string;
 }>;
 
 export default async function VerificationSuccessPage({
@@ -17,10 +18,12 @@ export default async function VerificationSuccessPage({
 }: {
   searchParams: VerificationSuccessSearchParams;
 }) {
-  const { method, source } = await searchParams;
+  const { method, source, returnTo } = await searchParams;
   const normalizedMethod = method === "phone" ? "phone" : "email";
   const normalizedSource =
-    source === "login" || source === "account" ? source : "register";
+    source === "login" || source === "account" || source === "settings"
+      ? source
+      : "register";
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[linear-gradient(180deg,#f8f6ea_0%,#eef0dd_48%,#dde3c2_100%)] px-4 py-6 md:px-6 md:py-8">
@@ -39,6 +42,7 @@ export default async function VerificationSuccessPage({
         <VerificationSuccessCard
           method={normalizedMethod}
           source={normalizedSource}
+          returnTo={returnTo}
         />
       </div>
     </div>

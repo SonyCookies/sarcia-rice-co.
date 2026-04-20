@@ -8,7 +8,7 @@ export type PendingVerificationUser = {
   role: string;
   email_verified_at?: string | null;
   mobile_verified_at?: string | null;
-  source?: "register" | "login" | "account";
+  source?: "register" | "login" | "account" | "settings";
   returnTo?: string;
 };
 
@@ -16,7 +16,7 @@ const PENDING_VERIFICATION_KEY = "riceproject_pending_verification";
 
 type PendingVerificationOptions = {
   returnTo?: string;
-  source?: "register" | "login" | "account";
+  source?: "register" | "login" | "account" | "settings";
 };
 
 export function savePendingVerificationUser(

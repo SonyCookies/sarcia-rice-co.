@@ -4,9 +4,9 @@ import { Suspense } from "react";
 import ResetPasswordCard from "@/app/(public)/(auth)/reset-password/_components/reset-password-card";
 
 export const metadata: Metadata = {
-  title: "Reset RiceProject Password",
+  title: "Reset Sarcia Rice Co. Password",
   description:
-    "Set a new RiceProject password using the secure reset link from your recovery request.",
+    "Set a new Sarcia Rice Co. password using the secure reset link from your recovery request.",
 };
 
 function ResetPasswordCardFallback() {

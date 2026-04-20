@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import RegisterCard from "@/app/(public)/(auth)/register/_components/register-card";
 
 export const metadata: Metadata = {
-  title: "Create RiceProject Account",
+  title: "Create Sarcia Rice Co. Account",
   description: "Register a customer account for ordering rice, tracking deliveries, and earning rewards.",
 };
 

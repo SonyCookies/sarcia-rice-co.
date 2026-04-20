@@ -5,7 +5,7 @@ import VerifyOtpCard from "@/app/(public)/(auth)/register/verify-otp/_components
 
 export const metadata: Metadata = {
   title: "Verify Account",
-  description: "Enter the 6-digit OTP to verify your RiceProject account.",
+  description: "Enter the 6-digit OTP to verify your Sarcia Rice Co. account.",
 };
 
 export default function VerifyOtpPage() {

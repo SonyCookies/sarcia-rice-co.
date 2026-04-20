@@ -3,9 +3,9 @@ import type { Metadata } from "next";
 import ForgotPasswordCard from "@/app/(public)/(auth)/forgot-password/_components/forgot-password-card";
 
 export const metadata: Metadata = {
-  title: "Recover RiceProject Account",
+  title: "Recover Sarcia Rice Co. Account",
   description:
-    "Request a password reset link or verification code to recover your RiceProject account.",
+    "Request a password reset link or verification code to recover your Sarcia Rice Co. account.",
 };
 
 export default function ForgotPasswordPage() {
