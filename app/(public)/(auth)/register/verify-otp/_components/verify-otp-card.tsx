@@ -130,6 +130,9 @@ export default function VerifyOtpCard() {
         if (baseUser) {
           setUser({
             id: baseUser.id,
+            account_id:
+              data.user.account_id ??
+              ("account_id" in baseUser ? baseUser.account_id ?? null : null),
             name: baseUser.name,
             email: baseUser.email,
             mobile: baseUser.mobile,

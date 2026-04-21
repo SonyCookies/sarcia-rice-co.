@@ -19,6 +19,7 @@ type LaravelResponse = {
   trusted_device_max_age?: number | null;
   user?: {
     id: number;
+    account_id?: string | null;
     name: string;
     email: string;
     mobile: string;

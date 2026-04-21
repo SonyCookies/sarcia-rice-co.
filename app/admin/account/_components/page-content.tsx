@@ -7,7 +7,6 @@ import {
   PencilLine,
   Phone,
   Save,
-  ShieldCheck,
   UserRound,
   X,
 } from "lucide-react";
@@ -177,6 +176,11 @@ export default function AdminAccountPageContent() {
                     <BadgeCheck className="h-3.5 w-3.5" />
                     {user?.role ? `${user.role} access` : "admin access"}
                   </span>
+                  {user?.account_id ? (
+                    <span className="inline-flex rounded-full bg-[#f8f4e7] px-3 py-1 text-xs font-semibold text-[#7c6740]">
+                      {user.account_id}
+                    </span>
+                  ) : null}
                   <span className="inline-flex rounded-full bg-[#f4efdf] px-3 py-1 text-xs font-semibold text-[#7c7b55]">
                     {user?.mobile ? `+63 ${user.mobile}` : "No mobile saved yet"}
                   </span>

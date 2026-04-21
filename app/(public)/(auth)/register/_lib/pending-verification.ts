@@ -2,6 +2,7 @@
 
 export type PendingVerificationUser = {
   id: number;
+  account_id?: string | null;
   name: string;
   email: string;
   mobile: string;

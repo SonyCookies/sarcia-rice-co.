@@ -5,6 +5,7 @@ import { devtools } from "zustand/middleware";
 
 export type AuthUser = {
   id: number;
+  account_id?: string | null;
   name: string;
   email: string;
   mobile: string;

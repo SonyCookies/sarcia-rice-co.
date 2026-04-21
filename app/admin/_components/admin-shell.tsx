@@ -7,9 +7,11 @@ import {
   Bell,
   LayoutDashboard,
   LogOut,
+  Package,
   Search,
   Settings,
   ShieldCheck,
+  UsersRound,
   UserRound,
 } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -33,6 +35,22 @@ const navItems: NavItem[] = [
     id: "admin-dashboard",
     keywords: ["admin", "dashboard", "overview", "operations", "summary"],
     label: "Dashboard",
+  },
+  {
+    description: "Manage rice products, prices, stock availability, and archived items.",
+    href: "/admin/products",
+    icon: Package,
+    id: "admin-products",
+    keywords: ["inventory", "products", "stock", "rice", "catalog"],
+    label: "Inventory",
+  },
+  {
+    description: "Review every user account, role, and verification status in the system.",
+    href: "/admin/users",
+    icon: UsersRound,
+    id: "admin-users",
+    keywords: ["users", "customers", "accounts", "directory", "members", "all users"],
+    label: "Users",
   },
   {
     description: "Manage your admin profile, access snapshot, and security readiness.",
@@ -186,6 +204,23 @@ const searchItems: NavItem[] = [
       "admin device",
     ],
     label: "Trusted Devices",
+  },
+  {
+    description: "Search all user accounts, roles, and verification status from one admin-only directory.",
+    href: "/admin/users",
+    icon: UsersRound,
+    id: "admin-users-directory",
+    keywords: [
+      "users",
+      "all users",
+      "customers",
+      "accounts",
+      "members",
+      "directory",
+      "user list",
+      "account list",
+    ],
+    label: "Users Directory",
   },
   {
     description: "See operations highlights, admin priorities, and daily oversight metrics.",
@@ -684,7 +719,7 @@ export default function AdminShell({
         </main>
 
         <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-[#d9d6c2] bg-[#faf7ee]/95 px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 backdrop-blur xl:hidden">
-          <div className="mx-auto grid max-w-3xl grid-cols-3 gap-1">
+          <div className="mx-auto grid max-w-3xl grid-cols-5 gap-1">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = isActiveLink(item.href);

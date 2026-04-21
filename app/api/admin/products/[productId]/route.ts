@@ -1,0 +1,91 @@
+import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
+
+import {
+  deserializeBackendSessionCookie,
+  getSessionCookieName,
+} from "@/app/_lib/auth-cookie";
+import { proxyAuthedRequest } from "@/app/api/_lib/backend-auth-proxy";
+
+const backendBaseUrl =
+  process.env.LARAVEL_API_URL ?? "http://127.0.0.1:8000/api";
+
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ productId: string }> }
+) {
+  const { productId } = await params;
+  const url = new URL(request.url);
+  const queryString = url.searchParams.toString();
+
+  return proxyAuthedRequest(
+    queryString
+      ? `/admin/products/${productId}?${queryString}`
+      : `/admin/products/${productId}`,
+    {
+      method: "GET",
+      errorMessage: "Unable to load this product right now.",
+    }
+  );
+}
+
+export async function POST(
+  request: Request,
+  { params }: { params: Promise<{ productId: string }> }
+) {
+  const { productId } = await params;
+  const cookieStore = await cookies();
+  const sessionCookie = cookieStore.get(getSessionCookieName());
+  const backendSessionCookie = sessionCookie?.value
+    ? deserializeBackendSessionCookie(sessionCookie.value)
+    : null;
+
+  if (!backendSessionCookie) {
+    return NextResponse.json({ message: "Unauthenticated." }, { status: 401 });
+  }
+
+  try {
+    const formData = await request.formData();
+    
+    const response = await fetch(`${backendBaseUrl}/admin/products/${productId}`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        Cookie: `${backendSessionCookie.name}=${backendSessionCookie.value}`,
+      },
+      body: formData,
+      cache: "no-store",
+    });
+
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      return NextResponse.json(
+        {
+          ...(data && typeof data === "object" ? data : {}),
+          message: data?.message ?? "Failed to update product.",
+          errors: data?.errors ?? {},
+        },
+        { status: response.status }
+      );
+    }
+
+    return NextResponse.json(data, { status: response.status });
+  } catch {
+    return NextResponse.json(
+      { message: "We couldn't reach the backend." },
+      { status: 502 }
+    );
+  }
+}
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ productId: string }> }
+) {
+  const { productId } = await params;
+  return proxyAuthedRequest(`/admin/products/${productId}`, {
+    method: "DELETE",
+    errorMessage: "Unable to delete product right now.",
+  });
+}

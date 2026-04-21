@@ -21,6 +21,7 @@ type LaravelErrorResponse = {
   verification_method?: "email" | "phone";
   user?: {
     id: number;
+    account_id?: string | null;
     name: string;
     email: string;
     mobile: string;
